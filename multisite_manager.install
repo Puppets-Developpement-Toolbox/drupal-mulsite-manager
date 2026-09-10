@@ -1,0 +1,143 @@
+<?php
+
+use Drupal\Core\Field\BaseFieldDefinition;
+
+
+/**
+ * add http auth fields
+ */
+function multisite_manager_update_10001() {
+  $installFields = [
+    'http_auth_enabled' => BaseFieldDefinition::create('boolean')
+      ->setRevisionable(TRUE)
+      ->setLabel(t('Http Auth'))
+      ->setDefaultValue(FALSE)
+      ->setSetting('on_label', 'Enabled')
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'settings' => [
+          'display_label' => FALSE,
+        ],
+        'weight' => 11,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'type' => 'boolean',
+        'label' => 'above',
+        'weight' => 11,
+        'settings' => [
+          'format' => 'enabled-disabled',
+        ],
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+    ,
+    'http_auth_username' => BaseFieldDefinition::create('string')
+      ->setRevisionable(TRUE)
+      ->setLabel(t('Username'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => 12,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => 12,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->addConstraint('UniqueDomainName'),
+    'http_auth_password' => BaseFieldDefinition::create('string')
+      ->setRevisionable(TRUE)
+      ->setLabel(t('Password'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => 13,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => 13,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->addConstraint('UniqueDomainName')
+    ];
+
+
+  foreach($installFields as $name => $field) {
+    \Drupal::entityDefinitionUpdateManager()
+      ->installFieldStorageDefinition($name, 'multisite_manager_site', 'multisite_manager_site', $field);
+  }
+}
+
+/**
+ * Update hook to set up queue system for site cloning.
+ */
+function multisite_manager_update_10002() {
+  // Ensure the queue system is properly initialized
+  $queue_factory = \Drupal::service('queue');
+  $queue = $queue_factory->get('site_cloning_queue');
+
+  // The queue table will be created automatically when first used
+  // Log the migration to queue system
+  \Drupal::logger('multisite_manager')->info('Site cloning system migrated from batch to queue processing.');
+
+  return t('Site cloning system has been migrated to use queue processing for better performance and reliability.');
+}
+
+/**
+ * Add production_domain field, used to redirect sandbox domains to production.
+ */
+function multisite_manager_update_10003() {
+  $field = BaseFieldDefinition::create('string')
+    ->setRevisionable(TRUE)
+    ->setLabel(t('Production domain'))
+    ->setDescription(t('Domaine de production vers lequel ce site est redirigé (301) tant que ce champ diffère du domaine actuel.'))
+    ->setRequired(FALSE)
+    ->setSetting('max_length', 255)
+    ->setDisplayOptions('form', [
+      'type' => 'string_textfield',
+      'weight' => -4,
+    ])
+    ->setDisplayConfigurable('form', TRUE)
+    ->setDisplayOptions('view', [
+      'label' => 'hidden',
+      'type' => 'string',
+      'weight' => -4,
+    ])
+    ->setDisplayConfigurable('view', TRUE);
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition('production_domain', 'multisite_manager_site', 'multisite_manager_site', $field);
+}
+
+/**
+ * Implements hook_install().
+ */
+function multisite_manager_install() {
+  // Set up the site cloning queue
+  $queue_factory = \Drupal::service('queue');
+  $queue = $queue_factory->get('site_cloning_queue');
+
+  // Log successful installation
+  \Drupal::logger('multisite_manager')->info('Multisite Manager module installed with queue-based site cloning system.');
+
+  // Display installation message
+  \Drupal::messenger()->addStatus(t('Multisite Manager installed successfully. Site cloning will now use a queue system for better performance.'));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function multisite_manager_uninstall() {
+  // Clear any remaining queue items
+  $queue_factory = \Drupal::service('queue');
+  $queue = $queue_factory->get('site_cloning_queue');
+  $queue->deleteQueue();
+
+  \Drupal::logger('multisite_manager')->info('Multisite Manager module uninstalled and queue cleared.');
+}

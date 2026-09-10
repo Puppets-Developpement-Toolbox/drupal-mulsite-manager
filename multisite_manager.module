@@ -1,0 +1,141 @@
+<?php
+
+/**
+ * @file
+ * Contains multisite_manager.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\multisite_manager\SiteInterface;
+
+/**
+ * Implements hook_help().
+ */
+function multisite_manager_help($route_name, RouteMatchInterface $route_match)
+{
+  switch ($route_name) {
+    // Main module help for the multisite_manager module.
+    case "help.page.multisite_manager":
+      $output = "";
+      $output .= "<h3>" . t("About") . "</h3>";
+      $output .=
+        "<p>" .
+        t("Manages multiple Drupal sites with queue-based cloning system.") .
+        "</p>";
+      $output .= "<h3>" . t("Queue Management") . "</h3>";
+      $output .=
+        "<p>" .
+        t(
+          "Site cloning is now handled through a queue system for better performance and reliability.",
+        ) .
+        "</p>";
+      $output .= "<ul>";
+      $output .=
+        "<li>" .
+        t(
+          "Use <code>drush multisite:queue:status</code> to check queue status",
+        ) .
+        "</li>";
+      $output .=
+        "<li>" .
+        t(
+          "Use <code>drush multisite:queue:process</code> to process queue items manually",
+        ) .
+        "</li>";
+      $output .=
+        "<li>" .
+        t("Ensure cron is running regularly for automatic processing") .
+        "</li>";
+      $output .= "</ul>";
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function multisite_manager_cron()
+{
+  // Process some queue items on each cron run
+  // $queue_manager = \Drupal::service('multisite_manager.site_cloning_queue_manager');
+
+  // // Process up to 5 items per cron run to avoid long-running cron
+  // $processed = $queue_manager->processQueue(5);
+
+  // if ($processed > 0) {
+  //   \Drupal::logger('multisite_manager')->info('Processed @count site cloning queue items during cron run.', [
+  //     '@count' => $processed,
+  //   ]);
+  // }
+}
+
+/**
+ * Implements hook_entity_presave().
+ */
+function multisite_manager_entity_presave(
+  \Drupal\Core\Entity\EntityInterface $entity,
+) {
+  if ($entity instanceof SiteInterface) {
+    // Log when a site is about to be saved with published status change
+    if (
+      $entity->isNew() ||
+      $entity->published() !== $entity->original->published()
+    ) {
+      if ($entity->published()) {
+        \Drupal::logger("multisite_manager")->info(
+          "Site @domain is being published and will be queued for cloning.",
+          [
+            "@domain" => $entity->domain(),
+          ],
+        );
+      } else {
+        \Drupal::logger("multisite_manager")->info(
+          "Site @domain is being unpublished.",
+          [
+            "@domain" => $entity->domain(),
+          ],
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Get the site cloning queue manager service.
+ *
+ * @return \Drupal\multisite_manager\SiteCloningQueueManager
+ *   The site cloning queue manager service.
+ */
+function multisite_manager_get_queue_manager()
+{
+  return \Drupal::service("multisite_manager.site_cloning_queue_manager");
+}
+
+/**
+ * Check if a site is currently being cloned.
+ *
+ * @param \Drupal\multisite_manager\SiteInterface $site
+ *   The site entity.
+ *
+ * @return bool
+ *   TRUE if the site is being cloned, FALSE otherwise.
+ */
+function multisite_manager_is_site_cloning(SiteInterface $site)
+{
+  $queue_manager = multisite_manager_get_queue_manager();
+  return $queue_manager->isSiteBeingCloned($site);
+}
+
+/**
+ * Get the current queue size.
+ *
+ * @return int
+ *   The number of items in the site cloning queue.
+ */
+function multisite_manager_get_queue_size()
+{
+  $queue_manager = multisite_manager_get_queue_manager();
+  return $queue_manager->getQueueSize();
+}

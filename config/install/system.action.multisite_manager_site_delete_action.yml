@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - multisite_manager
+id: multisite_manager_site_delete_action
+label: 'Delete sites'
+type: multisite_manager_site
+plugin: entity:delete_action:multisite_manager_site
+configuration: {  }

@@ -1,0 +1,11 @@
+multisite_manager_site.type_add:
+  title: 'Add site type'
+  route_name: entity.multisite_manager_site_type.add_form
+  appears_on:
+    - entity.multisite_manager_site_type.collection
+
+multisite_manager_site.add_page:
+  title: 'Add site'
+  route_name: entity.multisite_manager_site.add_page
+  appears_on:
+    - entity.multisite_manager_site.collection

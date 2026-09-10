@@ -1,0 +1,14 @@
+entity.multisite_manager_site_type.collection:
+  title: "Site types"
+  description: "Manage and CRUD actions on Site type."
+  parent: system.admin_structure
+  route_name: entity.multisite_manager_site_type.collection
+
+entity.multisite_manager_site.collection:
+  title: "Sites"
+  description: "List of sites."
+  route_name: entity.multisite_manager_site.collection
+  # parent: system.admin_content
+  options:
+    attributes:
+      style: '--icon: url("/themes/contrib/gin/dist/media/sprite.svg#tool-view");'

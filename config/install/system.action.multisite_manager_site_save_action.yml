@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - multisite_manager
+id: multisite_manager_site_save_action
+label: 'Save sites'
+type: multisite_manager_site
+plugin: entity:save_action:multisite_manager_site
+configuration: {  }

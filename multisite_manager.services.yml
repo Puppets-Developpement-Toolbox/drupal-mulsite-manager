@@ -1,0 +1,14 @@
+services:
+  logger.channel.multisite_manager:
+    parent: logger.channel_base
+    arguments: ["multisite_manager"]
+
+  multisite_manager.site_cloning_queue_manager:
+    class: Drupal\multisite_manager\SiteCloningQueueManager
+    arguments:
+      [
+        "@queue",
+        "@logger.channel.multisite_manager",
+        "@file_system",
+        "@messenger",
+      ]

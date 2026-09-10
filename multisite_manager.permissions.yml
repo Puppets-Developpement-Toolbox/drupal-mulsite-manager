@@ -1,0 +1,8 @@
+administer multisite_manager_site types:
+  title: 'Administer site types'
+  description: 'Maintain the types of site entity.'
+  restrict access: true
+manage multisite_manager_site:
+  title: 'Manage sites'
+  description: 'Create, update and delete sites.'
+  restrict access: true

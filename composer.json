@@ -1,0 +1,11 @@
+{
+    "name": "drupal/multisite_manager",
+    "description": "Module de gestion multisite \"factory\" (clonage de sites, routage par domaine, authentification HTTP) partagé entre plusieurs projets.",
+    "type": "drupal-custom-module",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Drupal\\multisite_manager\\": "src/"
+        }
+    }
+}

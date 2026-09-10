@@ -1,0 +1,16 @@
+#
+# CU-869dfgrx2 - PROD : Souci avec indexation des robots.txt - ALL SITES
+# Fichier nécessaire pour que Drush 13 découvre les commandes
+#
+services:
+  multisite_manager.commands.list_sites:
+    class: Drupal\multisite_manager\Drush\Commands\ListSitesCommand
+    tags:
+      - { name: drush.command }
+
+  multisite_manager.commands.site_redirect:
+    class: Drupal\multisite_manager\Drush\Commands\SiteRedirectCommands
+    arguments:
+      - '@file_system'
+    tags:
+      - { name: drush.command }

@@ -1,0 +1,8 @@
+name: 'Multisite manager'
+type: module
+description: '@todo Add description.'
+package: 'Multisite'
+core_version_requirement: ^10 || ^11
+
+dependencies:
+  - drupal:text
