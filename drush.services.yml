@@ -7,10 +7,3 @@ services:
     class: Drupal\multisite_manager\Drush\Commands\ListSitesCommand
     tags:
       - { name: drush.command }
-
-  multisite_manager.commands.site_redirect:
-    class: Drupal\multisite_manager\Drush\Commands\SiteRedirectCommands
-    arguments:
-      - '@file_system'
-    tags:
-      - { name: drush.command }
