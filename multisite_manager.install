@@ -1,6 +1,10 @@
 <?php
 
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 
 /**
@@ -116,12 +120,129 @@ function multisite_manager_update_10003() {
 }
 
 /**
+ * Crée la taxonomie "region" et les champs field_region (sites + users) si
+ * nécessaire, et assigne une région par défaut aux sites qui n'en ont pas
+ * si la taxonomie est encore vide (première adoption de la fonctionnalité).
+ *
+ * Fait par code plutôt que par config/install car le bundle de l'entité
+ * "site" a un nom différent selon le projet (ex: "site" chez Sodexo,
+ * "site_ecs" chez MediaSchool) : on découvre les bundles existants au lieu
+ * de coder un nom en dur. Idempotent : sans effet si tout existe déjà.
+ */
+function multisite_manager_ensure_region_fields() {
+  // Le multisite peut avoir "taxonomy"/"field" désactivés sur certains
+  // sites (ex: un site de gestion "factory" sans contenu éditorial) : on
+  // s'assure qu'ils sont actifs avant de créer la taxonomie et les champs.
+  // Sans effet si déjà activés (ex: Sodexo).
+  \Drupal::service('module_installer')->install(['field', 'taxonomy']);
+
+  if (!Vocabulary::load('region')) {
+    Vocabulary::create([
+      'vid' => 'region',
+      'name' => 'Region',
+    ])->save();
+  }
+
+  if (!FieldStorageConfig::loadByName('multisite_manager_site', 'field_region')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_region',
+      'entity_type' => 'multisite_manager_site',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => ['target_type' => 'taxonomy_term'],
+    ])->save();
+  }
+
+  if (!FieldStorageConfig::loadByName('user', 'field_region')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_region',
+      'entity_type' => 'user',
+      'type' => 'entity_reference',
+      'cardinality' => -1,
+      'settings' => ['target_type' => 'taxonomy_term'],
+    ])->save();
+  }
+
+  $region_handler_settings = [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['region' => 'region'],
+    ],
+  ];
+
+  // Attacher field_region à chaque bundle existant de l'entité "site",
+  // quel que soit son nom.
+  $bundles = \Drupal::entityTypeManager()
+    ->getStorage('multisite_manager_site_type')
+    ->loadMultiple();
+  foreach ($bundles as $bundle) {
+    $bundle_id = $bundle->id();
+    if (!FieldConfig::loadByName('multisite_manager_site', $bundle_id, 'field_region')) {
+      FieldConfig::create([
+        'field_name' => 'field_region',
+        'entity_type' => 'multisite_manager_site',
+        'bundle' => $bundle_id,
+        'label' => 'Region',
+        'settings' => $region_handler_settings,
+      ])->save();
+    }
+  }
+
+  if (!FieldConfig::loadByName('user', 'user', 'field_region')) {
+    FieldConfig::create([
+      'field_name' => 'field_region',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Region',
+      'settings' => $region_handler_settings,
+    ])->save();
+  }
+
+  // Région par défaut uniquement si la taxonomie est encore vide : ne
+  // touche jamais un projet qui a déjà ses propres régions (ex: Sodexo).
+  $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $existing_terms = $term_storage->getQuery()
+    ->condition('vid', 'region')
+    ->accessCheck(FALSE)
+    ->range(0, 1)
+    ->execute();
+
+  if (empty($existing_terms)) {
+    $default_term = Term::create([
+      'vid' => 'region',
+      'name' => 'Default',
+    ]);
+    $default_term->save();
+
+    $site_storage = \Drupal::entityTypeManager()->getStorage('multisite_manager_site');
+    foreach ($site_storage->loadMultiple() as $site) {
+      if ($site->get('field_region')->isEmpty()) {
+        $site->set('field_region', $default_term->id());
+        $site->save();
+      }
+    }
+  }
+}
+
+/**
+ * Ajoute les régions (field_region sur les sites et les utilisateurs), avec
+ * une région par défaut assignée aux sites existants si la taxonomie est
+ * vide (sans effet si des régions existent déjà, ex: Sodexo).
+ */
+function multisite_manager_update_10004() {
+  multisite_manager_ensure_region_fields();
+  return t('Champ "region" créé si nécessaire, avec une région par défaut assignée aux sites qui n\'en avaient pas si la taxonomie était vide.');
+}
+
+/**
  * Implements hook_install().
  */
 function multisite_manager_install() {
   // Set up the site cloning queue
   $queue_factory = \Drupal::service('queue');
   $queue = $queue_factory->get('site_cloning_queue');
+
+  multisite_manager_ensure_region_fields();
 
   // Log successful installation
   \Drupal::logger('multisite_manager')->info('Multisite Manager module installed with queue-based site cloning system.');

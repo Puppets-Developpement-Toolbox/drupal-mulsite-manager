@@ -6,3 +6,7 @@ manage multisite_manager_site:
   title: 'Manage sites'
   description: 'Create, update and delete sites.'
   restrict access: true
+bypass region restriction:
+  title: 'Bypass region restriction'
+  description: "Voir et gérer tous les sites, quelle que soit leur région (les rôles marqués comme administrateur du site l'ont automatiquement)."
+  restrict access: true
