@@ -76,6 +76,15 @@ class SiteStorage extends SqlContentEntityStorage
   }
 
   /**
+   * Empêche temporairement la mise en file de clonage lors de sauvegardes
+   * groupées de maintenance (ex: migration de champ) qui ne doivent pas
+   * déclencher de (re)clonage, même si le fichier d'état local ne reflète
+   * pas encore le statut publié de l'entité (ex: après import d'une base de
+   * production sans les fichiers d'état locaux correspondants).
+   */
+  public static bool $suppressCloningQueue = false;
+
+  /**
    * @param SiteInterface $site
    */
   public function save(EntityInterface $site)
@@ -107,7 +116,7 @@ class SiteStorage extends SqlContentEntityStorage
     if ($site->published() !== $currentState->published) {
       if ($site->published()) {
         $currentState->published = true;
-        if (!$currentState->cloned) {
+        if (!$currentState->cloned && !self::$suppressCloningQueue) {
           $this->queueManager->queueSiteCloning($site);
         }
       } else {

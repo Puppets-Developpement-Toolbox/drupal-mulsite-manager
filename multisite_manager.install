@@ -214,12 +214,22 @@ function multisite_manager_ensure_region_fields() {
     ]);
     $default_term->save();
 
-    $site_storage = \Drupal::entityTypeManager()->getStorage('multisite_manager_site');
-    foreach ($site_storage->loadMultiple() as $site) {
-      if ($site->get('field_region')->isEmpty()) {
-        $site->set('field_region', $default_term->id());
-        $site->save();
+    // Suspendre la mise en file de clonage : cette boucle ne fait
+    // qu'assigner une région par défaut, elle ne doit jamais déclencher de
+    // (re)clonage même si le site n'a pas encore de fichier d'état local
+    // correspondant (ex: import d'une base de production en local).
+    \Drupal\multisite_manager\SiteStorage::$suppressCloningQueue = TRUE;
+    try {
+      $site_storage = \Drupal::entityTypeManager()->getStorage('multisite_manager_site');
+      foreach ($site_storage->loadMultiple() as $site) {
+        if ($site->get('field_region')->isEmpty()) {
+          $site->set('field_region', $default_term->id());
+          $site->save();
+        }
       }
+    }
+    finally {
+      \Drupal\multisite_manager\SiteStorage::$suppressCloningQueue = FALSE;
     }
   }
 }
