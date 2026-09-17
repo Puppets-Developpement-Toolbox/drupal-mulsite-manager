@@ -134,7 +134,27 @@ function multisite_manager_ensure_region_fields() {
   // sites (ex: un site de gestion "factory" sans contenu éditorial) : on
   // s'assure qu'ils sont actifs avant de créer la taxonomie et les champs.
   // Sans effet si déjà activés (ex: Sodexo).
-  \Drupal::service('module_installer')->install(['field', 'taxonomy']);
+  \Drupal::service('module_installer')->install(['field', 'taxonomy', 'config_ignore']);
+
+  // config_ignore doit protéger cette config créée par code : sans ça, un
+  // "drush config:import" ultérieur la voit absente de config/sync (design
+  // volontaire, le bundle du site diffère par projet) et tente de la
+  // supprimer, ce qui échoue à cause du contenu réel déjà créé. Activé ici,
+  // avant toute création, pour que la protection soit déjà en base au
+  // moment où "drush config:import" tournera (process séparé de "updb").
+  $config_ignore_settings = \Drupal::configFactory()->getEditable('config_ignore.settings');
+  $region_ignored_entities = [
+    'taxonomy.vocabulary.region',
+    'field.storage.multisite_manager_site.field_region',
+    'field.field.multisite_manager_site.*.field_region',
+    'field.storage.user.field_region',
+    'field.field.user.user.field_region',
+  ];
+  $ignored_entities = $config_ignore_settings->get('ignored_config_entities') ?? [];
+  $config_ignore_settings
+    ->set('mode', $config_ignore_settings->get('mode') ?? 'simple')
+    ->set('ignored_config_entities', array_unique(array_merge($ignored_entities, $region_ignored_entities)))
+    ->save();
 
   if (!Vocabulary::load('region')) {
     Vocabulary::create([

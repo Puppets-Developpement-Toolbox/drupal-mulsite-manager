@@ -8,3 +8,4 @@ dependencies:
   - drupal:text
   - drupal:taxonomy
   - drupal:field
+  - drupal:config_ignore
