@@ -94,7 +94,7 @@ function multisite_manager_check_http_auth(
     $user = $_SERVER["PHP_AUTH_USER"] ?? null;
     $pass = $_SERVER["PHP_AUTH_PW"] ?? null;
     if (
-      $user !== $state["http_auth"]["username"] &&
+      $user !== $state["http_auth"]["username"] ||
       $pass !== $state["http_auth"]["password"]
     ) {
       header('WWW-Authenticate: Basic realm="Authentification required"');
