@@ -41,7 +41,9 @@ function multisite_manager_feed_site(array &$sites, array &$redirects, string $p
 
     // Domaine de production externe (ex: site sandbox hébergé ici, mais dont la
     // marque a un domaine de prod séparé, potentiellement hors de ce serveur).
+    // Uniquement en prod : hors prod, cette redirection renverrait vers la prod.
     if (
+      multisite_manager_is_production() &&
       is_array($state) &&
       !empty($state["domain"]) &&
       !empty($state["production_domain"]) &&
@@ -67,6 +69,52 @@ function multisite_manager_feed_site(array &$sites, array &$redirects, string $p
   // Les redirections vers un domaine de production sont ajoutées après le
   // garde-fou : leur domaine source reste volontairement actif dans $sites.
   $redirects = array_merge($redirects, $productionRedirects);
+}
+
+/**
+ * Environnement de production ? APP_ENV absent = prod (choix volontaire).
+ */
+function multisite_manager_is_production(): bool
+{
+  return ($_ENV["APP_ENV"] ?? "prod") === "prod";
+}
+
+/**
+ * Verrouille l'indexation d'un site client en préprod, ou en sandbox
+ * (prod + authentification HTTP) : en-tête X-Robots-Tag sur toutes les
+ * réponses et robots.txt "Disallow: /". Un site live n'est pas concerné.
+ * $host est calculé par chaque projet (Sodexo lit X-Forwarded-Host).
+ */
+function multisite_manager_lock_robots(
+  array $sites,
+  ?string $host,
+  string $private_path,
+): void {
+  if (
+    php_sapi_name() === "cli" ||
+    $host === null ||
+    !isset($sites[$host]) ||
+    $host === $_ENV["BLUEPRINT_URI"] ||
+    $host === ($_ENV["FACTORY_URI"] ?? null)
+  ) {
+    return;
+  }
+
+  if (multisite_manager_is_production()) {
+    $id = basename($sites[$host]);
+    $state_path = "{$private_path}/multisite_manager/sites/{$id}.php";
+    $state = file_exists($state_path) ? require $state_path : [];
+    if (empty($state["http_auth"])) {
+      return;
+    }
+  }
+
+  header("X-Robots-Tag: noindex, nofollow");
+  if (($_SERVER["REQUEST_URI"] ?? "/") === "/robots.txt") {
+    header("Content-Type: text/plain");
+    echo "User-agent: *\nDisallow: /\n";
+    exit();
+  }
 }
 
 function multisite_manager_check_http_auth(

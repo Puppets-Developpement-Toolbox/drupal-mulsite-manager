@@ -34,6 +34,10 @@ final class SiteForm extends ContentEntityForm
     ];
     $form["http_auth_username"]["#states"] = $ifCheckedState;
     $form["http_auth_password"]["#states"] = $ifCheckedState;
+
+    // La redirection vers le domaine de production ne sert qu'en prod
+    // (sites sandbox) : masquée ailleurs. #access conserve la valeur enregistrée.
+    $form["production_domain"]["#access"] = multisite_manager_is_production();
     return $form;
   }
 
