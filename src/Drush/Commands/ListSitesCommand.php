@@ -58,6 +58,12 @@ final class ListSitesCommand extends DrushCommands {
         }
       }
     }
+    $weight = fn(string $name): int => match ($name) {
+      'factory' => -2,
+      'blueprint' => -1,
+      default => (int) substr($name, strlen('site/')),
+    };
+    uasort($sites, fn($a, $b) => $weight($a) <=> $weight($b));
     $domains = array_keys($sites);
     array_map([$output, 'writeln'], $domains);
   }
