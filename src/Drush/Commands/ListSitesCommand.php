@@ -33,11 +33,10 @@ final class ListSitesCommand extends DrushCommands {
       if (!empty($_ENV['FACTORY_URI'])) {
         $sites[$_ENV['FACTORY_URI']] = 'factory';
       }
-      $redirects = [];
       // __DIR__ = web/modules/custom/multisite_manager/src/Drush/Commands
       // 7 niveaux vers le haut → racine du projet
       $privatePath = __DIR__ . '/../../../../../../../storage/private/factory/';
-      multisite_manager_feed_site($sites, $redirects, $privatePath);
+      multisite_manager_feed_site($sites, $privatePath);
     } else {
       $sites = [];
       include_once __DIR__ . '/../../../../../../sites/sites.php';

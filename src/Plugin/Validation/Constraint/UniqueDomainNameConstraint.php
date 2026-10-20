@@ -21,4 +21,6 @@ class UniqueDomainNameConstraint extends Constraint {
 
   public $domainNameIsReserved = '%value is a reserved domain name';
 
+  public $pathIsReserved = '%value uses a reserved folder name (%segment), please choose another one';
+
 }

@@ -1,14 +1,13 @@
 <?php
 
-// CU-869dfgrx2 - PROD : Souci avec indexation des robots.txt - ALL SITES
-// Construction de la map de redirections
-// Nouveau paramètre array &$redirects sur multisite_manager_feed_site()
-// Dans la même boucle glob(), collecte les previous_domains de chaque site
-// Filtre final : un domaine activement attribué gagne toujours sur une entrée historique
+use Drupal\multisite_manager\SiteState;
 
-
-function multisite_manager_feed_site(array &$sites, array &$redirects, string $private_path)
+/**
+ * 
+ */
+function multisite_manager_feed_site(array &$sites, string $private_path)
 {
+  $redirects = [];
   $load_unpublished_replica = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
   foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
     $state = require $file;
@@ -20,7 +19,7 @@ function multisite_manager_feed_site(array &$sites, array &$redirects, string $p
       $domain = $state["domain"];
 
       if($domain !== $_ENV["BLUEPRINT_URI"] && $domain !== $_ENV["FACTORY_URI"] ) {
-        $sites[$domain] = "site/{$id}";
+        $sites[str_replace('/', '.', $domain)] = "site/{$id}";
       }
     }
 
@@ -48,14 +47,25 @@ function multisite_manager_feed_site(array &$sites, array &$redirects, string $p
       unset($redirects[$from]);
     }
   }
-}
 
-/**
- * Environnement de production ? APP_ENV absent = prod (choix volontaire).
- */
-function multisite_manager_is_production(): bool
-{
-  return ($_ENV["APP_ENV"] ?? "prod") === "prod";
+  // Rediriger en 301 les anciens domaines (ex: sandbox → prod).
+  // Ce bloc s'exécute avant que Drupal ne sélectionne un site, donc avant tout
+  // bootstrap — même pattern que multisite_manager_check_http_auth().
+  if (php_sapi_name() !== 'cli') {
+    $host = strtolower(explode(':', $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? '')[0]);
+    $uri = $_SERVER['REQUEST_URI'];
+    $url = "{$host}{$uri}";
+    $drupal_site_uri = strtolower(str_replace('/', '.', $url));
+    if (array_find_key($sites, fn($site, $key) => str_starts_with($drupal_site_uri, strtolower($key))) === null) {
+      foreach($redirects as $from => $to) {
+        if (str_starts_with(strtolower($url), strtolower($from))) {
+          $path = substr($url, strlen($from));
+          header("Location: https://{$to}{$path}", true, 301);
+          exit();
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -65,23 +75,14 @@ function multisite_manager_is_production(): bool
  * $host est calculé par chaque projet (Sodexo lit X-Forwarded-Host).
  */
 function multisite_manager_lock_robots(
-  array $sites,
-  ?string $host,
+  string $site_id,
   string $private_path,
 ): void {
-  if (
-    php_sapi_name() === "cli" ||
-    $host === null ||
-    !isset($sites[$host]) ||
-    $host === $_ENV["BLUEPRINT_URI"] ||
-    $host === ($_ENV["FACTORY_URI"] ?? null)
-  ) {
-    return;
-  }
+  if (php_sapi_name() === "cli") return;
+  if ($_SERVER["REQUEST_URI"] !== "/robots.txt") return;
 
-  if (multisite_manager_is_production()) {
-    $id = basename($sites[$host]);
-    $state_path = "{$private_path}/multisite_manager/sites/{$id}.php";
+  if ($_ENV["APP_ENV"] === 'prod') {
+    $state_path = "{$private_path}/multisite_manager/sites/{$site_id}.php";
     $state = file_exists($state_path) ? require $state_path : [];
     if (empty($state["http_auth"])) {
       return;
@@ -89,11 +90,9 @@ function multisite_manager_lock_robots(
   }
 
   header("X-Robots-Tag: noindex, nofollow");
-  if (($_SERVER["REQUEST_URI"] ?? "/") === "/robots.txt") {
-    header("Content-Type: text/plain");
-    echo "User-agent: *\nDisallow: /\n";
-    exit();
-  }
+  header("Content-Type: text/plain");
+  echo "User-agent: *\nDisallow: /\n";
+  exit();
 }
 
 function multisite_manager_check_http_auth(
