@@ -21,7 +21,6 @@ class SiteState
   public string $error_message;
   public ?array $httpAuth;
   public array $previousDomains;
-  public string $productionDomain;
 
   static function loadState(
     SiteInterface $site,
@@ -54,7 +53,6 @@ class SiteState
       "cloned" => false,
       "http_auth" => null,
       "previous_domains" => [],
-      "production_domain" => "",
     ];
     if (file_exists($realpath)) {
       $state = array_merge($state, include $realpath);
@@ -65,7 +63,6 @@ class SiteState
     $this->error_message = $state["error_message"] ?? "";
     $this->httpAuth = $state["http_auth"];
     $this->previousDomains = $state["previous_domains"];
-    $this->productionDomain = $state["production_domain"];
   }
 
   public function write()
@@ -86,7 +83,6 @@ class SiteState
           "http_auth" => $this->httpAuth,
           "error_message" => $this->error_message,
           "previous_domains" => $this->previousDomains,
-          "production_domain" => $this->productionDomain,
         ],
         true,
       ) .

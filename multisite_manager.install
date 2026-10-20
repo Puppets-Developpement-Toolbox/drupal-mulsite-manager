@@ -125,9 +125,9 @@ function multisite_manager_update_10003() {
  * si la taxonomie est encore vide (première adoption de la fonctionnalité).
  *
  * Fait par code plutôt que par config/install car le bundle de l'entité
- * "site" a un nom différent selon le projet (ex: "site" chez Sodexo,
- * "site_ecs" chez MediaSchool) : on découvre les bundles existants au lieu
- * de coder un nom en dur. Idempotent : sans effet si tout existe déjà.
+ * "site" peut avoir un nom différent selon le projet : on découvre les
+ * bundles existants au lieu de coder un nom en dur. Idempotent : sans effet
+ * si tout existe déjà.
  */
 function multisite_manager_ensure_region_fields() {
   // Le multisite peut avoir "taxonomy"/"field" désactivés sur certains
@@ -262,6 +262,19 @@ function multisite_manager_ensure_region_fields() {
 function multisite_manager_update_10004() {
   multisite_manager_ensure_region_fields();
   return t('Champ "region" créé si nécessaire, avec une région par défaut assignée aux sites qui n\'en avaient pas si la taxonomie était vide.');
+}
+
+/**
+ * Supprime le champ production_domain : la redirection d'un domaine vers un
+ * autre passe désormais uniquement par previous_domains (changer le domaine
+ * du site redirige automatiquement l'ancien vers le nouveau).
+ */
+function multisite_manager_update_10005() {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $definition = $update_manager->getFieldStorageDefinition('production_domain', 'multisite_manager_site');
+  if ($definition) {
+    $update_manager->uninstallFieldStorageDefinition($definition);
+  }
 }
 
 /**

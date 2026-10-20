@@ -127,24 +127,6 @@ final class Site extends RevisionableContentEntityBase implements SiteInterface 
       ->setDisplayConfigurable('view', TRUE)
       ->addConstraint('UniqueDomainName');
 
-    $fields['production_domain'] = BaseFieldDefinition::create('string')
-      ->setRevisionable(TRUE)
-      ->setLabel(t('Production domain'))
-      ->setDescription(t('Domaine de production vers lequel ce site est redirigé (301) tant que ce champ diffère du domaine actuel.'))
-      ->setRequired(FALSE)
-      ->setSetting('max_length', 255)
-      ->setDisplayOptions('form', [
-        'type' => 'string_textfield',
-        'weight' => -4,
-      ])
-      ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayOptions('view', [
-        'label' => 'hidden',
-        'type' => 'string',
-        'weight' => -4,
-      ])
-      ->setDisplayConfigurable('view', TRUE);
-
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setRevisionable(TRUE)
       ->setLabel(t('Status'))
@@ -300,10 +282,6 @@ final class Site extends RevisionableContentEntityBase implements SiteInterface 
 
   public function domain():string {
     return $this->get('domain')->value;
-  }
-
-  public function productionDomain():string {
-    return $this->get('production_domain')->value ?? '';
   }
 
   public function published():bool {

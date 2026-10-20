@@ -102,7 +102,6 @@ class SiteStorage extends SqlContentEntityStorage
       $currentState->recordDomainChange($oldDomain);
     }
     $currentState->domain = $newDomain;
-    $currentState->productionDomain = $site->productionDomain();
     if ($site->hasHttpAuth()) {
       $currentState->httpAuth = [
         "username" => $site->get("http_auth_username")->value,

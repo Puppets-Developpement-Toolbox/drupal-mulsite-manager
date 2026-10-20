@@ -10,10 +10,6 @@
 function multisite_manager_feed_site(array &$sites, array &$redirects, string $private_path)
 {
   $load_unpublished_replica = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
-  // Redirections vers un domaine de production externe : le domaine source
-  // reste activement attribué au site, donc gardées à part du garde-fou
-  // ci-dessous (qui ne s'applique qu'aux redirections d'anciens domaines).
-  $productionRedirects = [];
   foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
     $state = require $file;
     if (
@@ -38,19 +34,6 @@ function multisite_manager_feed_site(array &$sites, array &$redirects, string $p
         $redirects[$oldDomain] = $state["domain"];
       }
     }
-
-    // Domaine de production externe (ex: site sandbox hébergé ici, mais dont la
-    // marque a un domaine de prod séparé, potentiellement hors de ce serveur).
-    // Uniquement en prod : hors prod, cette redirection renverrait vers la prod.
-    if (
-      multisite_manager_is_production() &&
-      is_array($state) &&
-      !empty($state["domain"]) &&
-      !empty($state["production_domain"]) &&
-      $state["production_domain"] !== $state["domain"]
-    ) {
-      $productionRedirects[$state["domain"]] = $state["production_domain"];
-    }
   }
 
   // Garde-fou : un domaine activement attribué à un site (présent dans $sites,
@@ -65,10 +48,6 @@ function multisite_manager_feed_site(array &$sites, array &$redirects, string $p
       unset($redirects[$from]);
     }
   }
-
-  // Les redirections vers un domaine de production sont ajoutées après le
-  // garde-fou : leur domaine source reste volontairement actif dans $sites.
-  $redirects = array_merge($redirects, $productionRedirects);
 }
 
 /**
