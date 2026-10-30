@@ -2,9 +2,11 @@
 
 
 // list all sites states
-function multisite_manager_list_sites(string $private_path, bool $load_unpublished = false): array
+function multisite_manager_list_sites(string $private_path): array
 {
   $sites = [];
+  $load_unpublished = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
+
   foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
     $state = require $file;
     if(!is_array($state) || !$state["cloned"] ||
@@ -24,20 +26,13 @@ function multisite_manager_list_sites(string $private_path, bool $load_unpublish
 function multisite_manager_feed_site(array &$sites, string $private_path)
 {
   $redirects = [];
-  $load_unpublished_replica = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
-  $site_states = multisite_manager_list_sites($private_path, $load_unpublished_replica);
+  $site_states = multisite_manager_list_sites($private_path);
 
   foreach ($site_states as $id => $state) {
-    if (
-      (is_array($state) && $state["published"]) ||
-      ($load_unpublished_replica && $state["cloned"])
-    ) {
-      $id = pathinfo($file, PATHINFO_FILENAME);
-      $domain = $state["domain"];
+    $domain = $state["domain"];
 
-      if($domain !== $_ENV["BLUEPRINT_URI"] && $domain !== $_ENV["FACTORY_URI"] ) {
-        $sites[str_replace('/', '.', $domain)] = "site/{$id}";
-      }
+    if($domain !== $_ENV["BLUEPRINT_URI"] && $domain !== $_ENV["FACTORY_URI"] ) {
+      $sites[str_replace('/', '.', $domain)] = "site/{$id}";
     }
 
     // On collecte les anciens domaines même pour les sites dépubliés :
