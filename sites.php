@@ -1,6 +1,22 @@
 <?php
 
-use Drupal\multisite_manager\SiteState;
+
+// list all sites states
+function multisite_manager_list_sites(string $private_path, bool $load_unpublished = false): array
+{
+  $sites = [];
+  foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
+    $state = require $file;
+    if(!is_array($state) || !$state["cloned"] ||
+       (!$state["published"] && !$load_unpublished)
+    ) {
+      continue;
+    }
+    $id = pathinfo($file, PATHINFO_FILENAME);
+    $sites[$id] = $state;
+  }
+  return $sites;
+}
 
 /**
  * 
@@ -9,8 +25,9 @@ function multisite_manager_feed_site(array &$sites, string $private_path)
 {
   $redirects = [];
   $load_unpublished_replica = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
-  foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
-    $state = require $file;
+  $site_states = multisite_manager_list_sites($private_path, $load_unpublished_replica);
+
+  foreach ($site_states as $id => $state) {
     if (
       (is_array($state) && $state["published"]) ||
       ($load_unpublished_replica && $state["cloned"])
