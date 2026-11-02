@@ -348,7 +348,8 @@ class SiteStorage extends SqlContentEntityStorage
   private static function drush(string $domain, array $cmd): string
   {
     $appRoot = Drupal::root() . "/..";
-    $cmd = array_merge(["./vendor/bin/drush", "--uri", $domain, "--yes"], $cmd);
+    $uri = str_replace('/', '.', $domain);
+    $cmd = array_merge(["./vendor/bin/drush", "--uri", $uri, "--yes"], $cmd);
     $env = [
       // drush need an home directory, we just give a fake one
       "HOME" => "/dummy",
