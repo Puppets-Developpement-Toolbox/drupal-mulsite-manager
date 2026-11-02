@@ -354,7 +354,7 @@ class SiteStorage extends SqlContentEntityStorage
       // drush need an home directory, we just give a fake one
       "HOME" => "/dummy",
       // load unpublished site to manage them
-      "LOAD_UNPUBLISHED_REPLICA" => "1",
+      "LOAD_UNCLONED_SITES" => "1",
     ];
     \Drupal::logger("multisite_manager")->debug(
       "run command : " . implode(" ", $cmd),

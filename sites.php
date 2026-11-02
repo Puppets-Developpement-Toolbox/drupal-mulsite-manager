@@ -5,13 +5,14 @@
 function multisite_manager_list_sites(string $private_path): array
 {
   $sites = [];
-  $load_unpublished = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
+  $load_uncloned = !!($_ENV["LOAD_UNCLONED_SITES"] ?? false);
+  $load_unpublished = $load_uncloned || !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
   foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
     $state = require $file;
     if(
-      is_array($state) || 
-      $state["published"] ||
-      ($load_unpublished_replica && $state["cloned"])  
+      is_array($state) && 
+      ($state["cloned"] || $load_uncloned) &&
+      ($state["published"] || $load_unpublished) 
     ) {
       $id = pathinfo($file, PATHINFO_FILENAME);
       $sites[$id] = $state;
