@@ -6,16 +6,16 @@ function multisite_manager_list_sites(string $private_path): array
 {
   $sites = [];
   $load_unpublished = !!($_ENV["LOAD_UNPUBLISHED_REPLICA"] ?? false);
-
   foreach (glob("{$private_path}/multisite_manager/sites/*.php") as $file) {
     $state = require $file;
-    if(!is_array($state) || !$state["cloned"] ||
-       (!$state["published"] && !$load_unpublished)
+    if(
+      is_array($state) || 
+      $state["published"] ||
+      ($load_unpublished_replica && $state["cloned"])  
     ) {
-      continue;
+      $id = pathinfo($file, PATHINFO_FILENAME);
+      $sites[$id] = $state;
     }
-    $id = pathinfo($file, PATHINFO_FILENAME);
-    $sites[$id] = $state;
   }
   return $sites;
 }
