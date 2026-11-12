@@ -16,4 +16,6 @@ interface SiteInterface extends ContentEntityInterface, EntityOwnerInterface, En
 
   public function hasHttpAuth():bool;
 
+  public function isNoindex():bool;
+
 }

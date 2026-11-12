@@ -278,6 +278,20 @@ function multisite_manager_update_10005() {
 }
 
 /**
+ * Ajoute le champ noindex : site public mais exclu des moteurs de recherche
+ * (en-tête X-Robots-Tag posé par multisite_manager_lock_robots()).
+ */
+function multisite_manager_update_10006() {
+  $field = BaseFieldDefinition::create('boolean')
+    ->setRevisionable(TRUE)
+    ->setLabel(t('No indexing in search engines'))
+    ->setDefaultValue(FALSE);
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition('noindex', 'multisite_manager_site', 'multisite_manager_site', $field);
+}
+
+/**
  * Implements hook_install().
  */
 function multisite_manager_install() {

@@ -82,30 +82,37 @@ function multisite_manager_feed_site(array &$sites, string $private_path)
 }
 
 /**
- * Verrouille l'indexation d'un site client en préprod, ou en sandbox
- * (prod + authentification HTTP) : en-tête X-Robots-Tag sur toutes les
- * réponses et robots.txt "Disallow: /". Un site live n'est pas concerné.
- * $host est calculé par chaque projet (Sodexo lit X-Forwarded-Host).
+ * Exclut un site des moteurs de recherche : en-tête
+ * "X-Robots-Tag: noindex, nofollow" sur toutes les réponses, dans trois cas :
+ * - case « No indexing in search engines » cochée, quel que soit
+ *   l'environnement (prod comprise : site public mais non indexé) ;
+ * - sandbox (authentification HTTP) ;
+ * - environnement autre que la prod (préprod, local).
+ * En prod, un site sans case cochée ni authentification HTTP n'est pas concerné.
+ *
+ * robots.txt n'est volontairement pas bloqué : un "Disallow: /" empêcherait
+ * les robots de lire le noindex, et les URL resteraient indexables (sans
+ * contenu) à partir de liens externes.
+ *
+ * À appeler dans le settings.php du projet, après
+ * multisite_manager_check_http_auth().
  */
 function multisite_manager_lock_robots(
   string $site_id,
   string $private_path,
 ): void {
   if (php_sapi_name() === "cli") return;
-  if ($_SERVER["REQUEST_URI"] !== "/robots.txt") return;
 
-  if ($_ENV["APP_ENV"] === 'prod') {
-    $state_path = "{$private_path}/multisite_manager/sites/{$site_id}.php";
-    $state = file_exists($state_path) ? require $state_path : [];
-    if (empty($state["http_auth"])) {
-      return;
-    }
+  $state_path = "{$private_path}/multisite_manager/sites/{$site_id}.php";
+  $state = file_exists($state_path) ? require $state_path : [];
+
+  if (
+    !empty($state["noindex"]) ||
+    !empty($state["http_auth"]) ||
+    ($_ENV["APP_ENV"] ?? "prod") !== "prod"
+  ) {
+    header("X-Robots-Tag: noindex, nofollow");
   }
-
-  header("X-Robots-Tag: noindex, nofollow");
-  header("Content-Type: text/plain");
-  echo "User-agent: *\nDisallow: /\n";
-  exit();
 }
 
 function multisite_manager_check_http_auth(
