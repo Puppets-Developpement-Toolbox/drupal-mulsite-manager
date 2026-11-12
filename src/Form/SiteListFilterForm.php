@@ -24,6 +24,7 @@ final class SiteListFilterForm extends FormBase {
    * @param int|null $region TID de la région actuellement filtrée, ou NULL.
    * @param string|null $status Valeur du filtre statut ('1', '0') ou NULL.
    * @param string|null $http_auth Valeur du filtre protection HTTP ('1', '0') ou NULL.
+   * @param string|null $noindex Valeur du filtre indexation ('1' : non indexé, '0' : indexé) ou NULL.
    */
   public function buildForm(
     array $form,
@@ -31,6 +32,7 @@ final class SiteListFilterForm extends FormBase {
     ?int $region = NULL,
     ?string $status = NULL,
     ?string $http_auth = NULL,
+    ?string $noindex = NULL,
   ): array {
     $form['filters'] = [
       '#type' => 'details',
@@ -68,6 +70,17 @@ final class SiteListFilterForm extends FormBase {
       '#default_value' => $http_auth ?? '',
     ];
 
+    $form['filters']['noindex'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Indexing'),
+      '#options' => [
+        '' => $this->t('- Any indexing -'),
+        '0' => $this->t('Indexed'),
+        '1' => $this->t('Not indexed'),
+      ],
+      '#default_value' => $noindex ?? '',
+    ];
+
     $form['filters']['submit'] = [
       '#type' => 'submit',
       '#button_type' => 'primary',
@@ -75,7 +88,7 @@ final class SiteListFilterForm extends FormBase {
     ];
 
     // Afficher le bouton Reset uniquement si un filtre est actif.
-    if ($region !== NULL || $status !== NULL || $http_auth !== NULL) {
+    if ($region !== NULL || $status !== NULL || $http_auth !== NULL || $noindex !== NULL) {
       $form['filters']['reset'] = [
         '#type' => 'submit',
         '#value' => $this->t('Reset'),
@@ -105,6 +118,11 @@ final class SiteListFilterForm extends FormBase {
     $http_auth = $form_state->getValue('http_auth');
     if ($http_auth !== '' && $http_auth !== NULL) {
       $query['http_auth'] = $http_auth;
+    }
+
+    $noindex = $form_state->getValue('noindex');
+    if ($noindex !== '' && $noindex !== NULL) {
+      $query['noindex'] = $noindex;
     }
 
     $form_state->setRedirect(

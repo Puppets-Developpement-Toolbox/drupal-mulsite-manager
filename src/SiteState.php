@@ -20,6 +20,7 @@ class SiteState
   public bool $cloned;
   public string $error_message;
   public ?array $httpAuth;
+  public bool $noindex;
   public array $previousDomains;
 
   static function loadState(
@@ -52,6 +53,7 @@ class SiteState
       "published" => false,
       "cloned" => false,
       "http_auth" => null,
+      "noindex" => false,
       "previous_domains" => [],
     ];
     if (file_exists($realpath)) {
@@ -62,6 +64,7 @@ class SiteState
     $this->cloned = $state["cloned"];
     $this->error_message = $state["error_message"] ?? "";
     $this->httpAuth = $state["http_auth"];
+    $this->noindex = $state["noindex"];
     $this->previousDomains = $state["previous_domains"];
   }
 
@@ -81,6 +84,7 @@ class SiteState
           "cloned" => $this->cloned,
           "published" => $this->published,
           "http_auth" => $this->httpAuth,
+          "noindex" => $this->noindex,
           "error_message" => $this->error_message,
           "previous_domains" => $this->previousDomains,
         ],

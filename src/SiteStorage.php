@@ -110,6 +110,7 @@ class SiteStorage extends SqlContentEntityStorage
     } else {
       $currentState->httpAuth = null;
     }
+    $currentState->noindex = $site->isNoindex();
 
     // if entity and state aren't sync
     if ($site->published() !== $currentState->published) {

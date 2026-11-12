@@ -28,6 +28,7 @@ final class SiteListBuilder extends EntityListBuilder
     $header["region"] = $this->t("Region");
     $header["status"] = $this->t("Status");
     $header["http_auth"] = $this->t("Live/Sandbox");
+    $header["noindex"] = $this->t("Indexing");
     $header["clone_status"] = $this->t("Ready");
     $header["uid"] = $this->t("Author");
     $header["created"] = $this->t("Created");
@@ -82,6 +83,12 @@ final class SiteListBuilder extends EntityListBuilder
         ? '<span class="gin-status gin-status--warning">' . $this->t("Sandbox") . "</span>"
         : '<span class="gin-new-flag">' . $this->t("Live") . "</span>",
     ];
+    $row["noindex"]["data"] = [
+      "#type" => "markup",
+      "#markup" => $entity->isNoindex()
+        ? '<span class="gin-status gin-status--warning">' . $this->t("Not indexed") . "</span>"
+        : '<span class="gin-new-flag">' . $this->t("Indexed") . "</span>",
+    ];
 
     /** @var SiteCloningQueueManager */
     $queue_manager = \Drupal::service(
@@ -127,12 +134,15 @@ final class SiteListBuilder extends EntityListBuilder
     $regionFilter = ($regionParam !== NULL && $regionParam !== '') ? (int) $regionParam : NULL;
     $statusFilter = ($statusParam !== NULL && $statusParam !== '') ? (string) $statusParam : NULL;
     $httpAuthFilter = ($httpAuthParam !== NULL && $httpAuthParam !== '') ? (string) $httpAuthParam : NULL;
+    $noindexParam = $request->query->get('noindex');
+    $noindexFilter = ($noindexParam !== NULL && $noindexParam !== '') ? (string) $noindexParam : NULL;
 
     $build['filter_form'] = \Drupal::formBuilder()->getForm(
       SiteListFilterForm::class,
       $regionFilter,
       $statusFilter,
       $httpAuthFilter,
+      $noindexFilter,
     );
 
     $build += parent::render();
@@ -141,6 +151,7 @@ final class SiteListBuilder extends EntityListBuilder
     $build['table']['#cache']['contexts'][] = 'url.query_args:region';
     $build['table']['#cache']['contexts'][] = 'url.query_args:status';
     $build['table']['#cache']['contexts'][] = 'url.query_args:http_auth';
+    $build['table']['#cache']['contexts'][] = 'url.query_args:noindex';
 
     return $build;
   }
@@ -205,6 +216,11 @@ final class SiteListBuilder extends EntityListBuilder
     $httpAuthParam = $request->query->get('http_auth');
     if ($httpAuthParam !== NULL && $httpAuthParam !== '') {
       $query->condition("http_auth_enabled", (int) $httpAuthParam);
+    }
+
+    $noindexParam = $request->query->get('noindex');
+    if ($noindexParam !== NULL && $noindexParam !== '') {
+      $query->condition("noindex", (int) $noindexParam);
     }
 
     // Only add the pager if a limit is specified.

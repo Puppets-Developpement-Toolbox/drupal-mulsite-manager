@@ -150,6 +150,21 @@ final class Site extends RevisionableContentEntityBase implements SiteInterface 
       ])
       ->setDisplayConfigurable('view', TRUE);
 
+    $fields['noindex'] = BaseFieldDefinition::create('boolean')
+      ->setRevisionable(TRUE)
+      ->setLabel(t('No indexing in search engines'))
+      ->setDescription(t('Warning: The site remains public but is removed from search engines; only select this option if you are fully aware of the implications.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+        'weight' => 1,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
     $fields['description'] = BaseFieldDefinition::create('text_long')
       ->setRevisionable(TRUE)
       ->setLabel(t('Description'))
@@ -290,5 +305,9 @@ final class Site extends RevisionableContentEntityBase implements SiteInterface 
 
   public function hasHttpAuth():bool {
     return !!$this->get('http_auth_enabled')->value;
+  }
+
+  public function isNoindex():bool {
+    return !!$this->get('noindex')->value;
   }
 }
